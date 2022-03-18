@@ -51,28 +51,47 @@ class Pool
     public:
         void match()
         {
+            for(uint32_t i = 0; i < wt.size(); i ++)
+            {
+                wt[i] ++;
+            }
+
+
             while(users.size() > 1)
             {
-                //按分数排序
-                sort(users.begin(), users.end(), [&](User &a, User b){
-                        return a.score < b.score;
-                        });
-
+                //sort(users.begin(), users.end(), [&](User &a, User b){ return a.score < b.score; }); 按分数排序
+                
                 bool flag = true; //防止死循环，当没有匹配上时跳出循环
-                for(uint32_t i = 1; i < users.size(); i ++)
+                for(uint32_t i = 0; i < users.size(); i ++)
                 {
-                    auto a = users[i - 1], b = users[i];
-                    if(b.score - a.score <= 50)
+                    for(uint32_t j = i + 1; j < users.size(); j ++)
                     {
-                        users.erase(users.begin() + i - 1, users.begin() + i + 1);
-                        save_result(a.id, b.id);
-                        flag = false;
-                        break;
+                        auto a = users[i], b = users[j];
+                        if(check_match(i, j))
+                        {
+                            users.erase(users.begin() + j);
+                            users.erase(users.begin() + i);
+                            wt.erase(wt.begin() + j);
+                            wt.erase(wt.begin() + i);
+                            save_result(a.id, b.id);
+                            flag = false;
+                            break;
+                        }
                     }
                 }
                 if(flag) { break; }
             }
 
+        }
+
+        bool check_match(uint32_t i, uint32_t j)
+        {
+            auto a = users[i], b = users[j];
+            int dt = abs(a.score - b.score); // 分差
+            int a_max_dif = wt[i] * 50; //每秒多50
+            int b_max_dif = wt[j] * 50;
+
+            return dt <= a_max_dif && dt <= b_max_dif;
         }
 
         void save_result(int a, int b)
@@ -106,6 +125,7 @@ class Pool
         void add(User user)
         {
             users.push_back(user);
+            wt.push_back(0);
         }
 
         void remove(User user)
@@ -115,6 +135,7 @@ class Pool
                 if(users[i].id == user.id)
                 {
                     users.erase(users.begin() + i);
+                    wt.erase(wt.begin() + i);
                     break;
                 }
             }
@@ -122,6 +143,7 @@ class Pool
 
     private:
         vector<User> users;
+        vector<int> wt; //Waitting time等待时间 匹配轮次
 }pool;
 
 
@@ -129,6 +151,7 @@ class MatchHandler : virtual public MatchIf {
     public:
         MatchHandler() {
             // Your initialization goes here
+            // vector<int> wt; //Waitting time等待时间
         }
 
         /**
